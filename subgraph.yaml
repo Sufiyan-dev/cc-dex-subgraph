@@ -1,0 +1,51 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: OpenSwap
+    network: sepolia
+    source:
+      address: "0xDc8Ccef7A89d8dC3B08Af2E4363668c417F5ef2E"
+      abi: OpenSwap
+      startBlock: 4850241
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Initialized
+        - OwnershipTransferred
+        - Paused
+        - Rewarded
+        - TokenAdded
+        - TokenSwap
+        - Unpaused
+        - Upgraded
+        - addedLiquidity
+        - tokenBuyBacked
+      abis:
+        - name: OpenSwap
+          file: ./abis/OpenSwap.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: Paused(address)
+          handler: handlePaused
+        - event: Rewarded(indexed address,uint256)
+          handler: handleRewarded
+        - event: TokenAdded(indexed address)
+          handler: handleTokenAdded
+        - event: TokenSwap(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleTokenSwap
+        - event: Unpaused(address)
+          handler: handleUnpaused
+        - event: Upgraded(indexed address)
+          handler: handleUpgraded
+        - event: addedLiquidity(indexed address,indexed address,uint256)
+          handler: handleaddedLiquidity
+        - event: tokenBuyBacked(indexed address,indexed address,uint256)
+          handler: handletokenBuyBacked
+      file: ./src/open-swap.ts
