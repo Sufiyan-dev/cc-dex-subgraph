@@ -1,166 +1,127 @@
+import { BigInt, bigInt } from "@graphprotocol/graph-ts";
 import {
-  Initialized as InitializedEvent,
-  OwnershipTransferred as OwnershipTransferredEvent,
-  Paused as PausedEvent,
   Rewarded as RewardedEvent,
   TokenAdded as TokenAddedEvent,
   TokenSwap as TokenSwapEvent,
-  Unpaused as UnpausedEvent,
-  Upgraded as UpgradedEvent,
   addedLiquidity as addedLiquidityEvent,
   tokenBuyBacked as tokenBuyBackedEvent
 } from "../generated/OpenSwap/OpenSwap"
 import {
-  Initialized,
-  OwnershipTransferred,
-  Paused,
-  Rewarded,
-  TokenAdded,
-  TokenSwap,
-  Unpaused,
-  Upgraded,
-  addedLiquidity,
-  tokenBuyBacked
+  User,
+  TokenPool,
+  UserSuppliedToken
 } from "../generated/schema"
 
-export function handleInitialized(event: InitializedEvent): void {
-  let entity = new Initialized(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.version = event.params.version
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handleOwnershipTransferred(
-  event: OwnershipTransferredEvent
-): void {
-  let entity = new OwnershipTransferred(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.previousOwner = event.params.previousOwner
-  entity.newOwner = event.params.newOwner
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handlePaused(event: PausedEvent): void {
-  let entity = new Paused(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.account = event.params.account
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
 export function handleRewarded(event: RewardedEvent): void {
-  let entity = new Rewarded(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.user = event.params.user
-  entity.amount = event.params.amount
+  let user = User.load(event.params.user);
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if(!user){
+    user = new User(event.params.user);
+    user.address = event.params.user;
+    user.createdAtTimestamp = event.block.timestamp;
+  }
+  user.rewardEarnedValueInUsd = user.rewardEarnedValueInUsd.plus(event.params.amount);
+  user.lastInteractedAtTimestamp = event.block.timestamp;
+  user.lastRewardedBlock = event.block.number;
 
-  entity.save()
+  user.save()
 }
 
 export function handleTokenAdded(event: TokenAddedEvent): void {
-  let entity = new TokenAdded(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.token = event.params.token
+  let tokenPool = new TokenPool(event.params.token);
+  tokenPool.createdAtTimestamp = event.block.timestamp;
+  tokenPool.poolBalance = BigInt.fromI32(0);
+  tokenPool.token = event.params.token;
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+  tokenPool.save()
 }
 
 export function handleTokenSwap(event: TokenSwapEvent): void {
-  let entity = new TokenSwap(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.user = event.params.user
-  entity.tokenIn = event.params.tokenIn
-  entity.tokenOut = event.params.tokenOut
-  entity.amountIn = event.params.amountIn
-  entity.amountOut = event.params.amountOut
+  let user = User.load(event.params.user);
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if(!user){
+    user = new User(event.params.user);
+    user.createdAtTimestamp= event.block.timestamp;
+    user.address = event.params.user;
+    user.suppliedValueInUsd = BigInt.fromI32(0);
+    user.rewardEarnedValueInUsd = BigInt.fromI32(0);
+    user.lastRewardedBlock = BigInt.fromI32(0);
+  }
+  user.lastInteractedAtTimestamp = event.block.timestamp;
+  user.save()
 
-  entity.save()
-}
-
-export function handleUnpaused(event: UnpausedEvent): void {
-  let entity = new Unpaused(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.account = event.params.account
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handleUpgraded(event: UpgradedEvent): void {
-  let entity = new Upgraded(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.implementation = event.params.implementation
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+  let tokenIn = TokenPool.load(event.params.tokenIn);
+  
+  if(!tokenIn){
+    tokenIn = new TokenPool(event.params.tokenIn);
+    tokenIn.createdAtTimestamp = event.block.timestamp;
+    tokenIn.token = event.params.tokenIn;
+  }
+  tokenIn.poolBalance = tokenIn.poolBalance.plus(event.params.amountIn);
+  tokenIn.save();
+  
+  let tokenOut = TokenPool.load(event.params.tokenOut);
+  if(!tokenOut){
+    tokenOut = new TokenPool(event.params.tokenOut);
+    tokenOut.createdAtTimestamp = event.block.timestamp;
+    tokenOut.token = event.params.tokenOut;
+  }
+  tokenOut.poolBalance = tokenOut.poolBalance.minus(event.params.amountOut);
+  tokenOut.save();
 }
 
 export function handleaddedLiquidity(event: addedLiquidityEvent): void {
-  let entity = new addedLiquidity(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.user = event.params.user
-  entity.token = event.params.token
-  entity.amount = event.params.amount
+  let token = TokenPool.load(event.params.token);
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if(!token){
+    token = new TokenPool(event.params.token);
+    token.createdAtTimestamp = event.block.timestamp;
+    token.token = event.params.token;
+  }
+  token.poolBalance = token.poolBalance.plus(event.params.amount);
+  token.save();
 
-  entity.save()
+  let user = User.load(event.params.user);
+  if(!user){
+    user = new User(event.params.user);
+    user.createdAtTimestamp = event.block.timestamp;
+    user.address = event.params.user;
+    user.suppliedValueInUsd = BigInt.fromI32(0);
+    user.rewardEarnedValueInUsd = BigInt.fromI32(0);
+    user.lastRewardedBlock = BigInt.fromI32(0);
+  }
+  user.lastInteractedAtTimestamp = event.block.timestamp;
+  user.save();
+
+  let userNewTokenAdded = new UserSuppliedToken(event.transaction.hash.concatI32(event.logIndex.toI32()));
+  userNewTokenAdded.user = event.params.user;
+  userNewTokenAdded.token = event.params.token;
+  userNewTokenAdded.amount = event.params.amount;
+  userNewTokenAdded.timestamp = event.block.timestamp;
+  userNewTokenAdded.hash = event.transaction.hash;
+  userNewTokenAdded.save();
 }
 
 export function handletokenBuyBacked(event: tokenBuyBackedEvent): void {
-  let entity = new tokenBuyBacked(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.user = event.params.user
-  entity.token = event.params.token
-  entity.amount = event.params.amount
+  let tokenPool = TokenPool.load(event.params.token);
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if(!tokenPool){
+    tokenPool = new TokenPool(event.params.token);
+    tokenPool.token = event.params.token;
+    tokenPool.createdAtTimestamp = event.block.timestamp;
+  }
+  tokenPool.poolBalance = tokenPool.poolBalance.minus(event.params.amount);
+  tokenPool.save();
 
-  entity.save()
+  let user = User.load(event.params.user);
+  if(!user){
+    user = new User(event.params.user);
+    user.createdAtTimestamp= event.block.timestamp;
+    user.address = event.params.user;
+    user.rewardEarnedValueInUsd = BigInt.fromI32(0);
+    user.lastRewardedBlock = BigInt.fromI32(0);
+  }
+  user.suppliedValueInUsd = BigInt.fromI32(0);
+  user.lastInteractedAtTimestamp = event.block.timestamp;
+  user.save();
 }

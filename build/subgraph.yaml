@@ -1,6 +1,6 @@
 specVersion: 0.0.5
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum
     name: OpenSwap
@@ -18,7 +18,7 @@ dataSources:
         - TokenPool
       abis:
         - name: OpenSwap
-          file: ./abis/OpenSwap.json
+          file: OpenSwap/abis/OpenSwap.json
       eventHandlers:
         - event: Rewarded(indexed address,uint256)
           handler: handleRewarded
@@ -30,4 +30,4 @@ dataSources:
           handler: handleaddedLiquidity
         - event: tokenBuyBacked(indexed address,indexed address,uint256)
           handler: handletokenBuyBacked
-      file: ./src/open-swap.ts
+      file: OpenSwap/OpenSwap.wasm

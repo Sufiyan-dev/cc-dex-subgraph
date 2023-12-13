@@ -1,7 +1,7 @@
 {
   "sepolia": {
     "OpenSwap": {
-      "address": "0xDc8Ccef7A89d8dC3B08Af2E4363668c417F5ef2E",
+      "address": "0x1bcf8D19a948Fb853fd8fce84a962C3DAd9c1A5C",
       "startBlock": 4850241
     }
   }
